@@ -1,0 +1,36 @@
+
+# Environnement virtuel Python
+.venv/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+
+# Fichiers de tests et couverture
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ruff
+.ruff_cache/
+
+# Fichiers personnels / configuration locale
+config.yaml
+
+# Données collectées
+data/
+*.csv
+
+# Logs
+*.log
+
+# Environnement et secrets
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
