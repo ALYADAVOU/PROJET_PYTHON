@@ -2,7 +2,7 @@
 
 import logging
 import time
-from collections.abc import Callable
+from typing import Any
 
 from rich.console import Console
 from rich.live import Live
@@ -32,14 +32,9 @@ def run_dashboard(
     config: VeloConfig,
     refresh_opt: int | None = None,
     max_cycles: int | None = None,
-    sleep_fn: Callable[[float], None] = time.sleep,
+    sleep_fn: Any = time.sleep,
 ) -> int:
-    """Lance le tableau de bord temps réel jusqu'à Ctrl+C (ou ``max_cycles``).
-
-    Réutilise les fonctions de calcul de ``status``, ``favorites`` et ``alerts``.
-    En cas d'erreur réseau lors d'un rafraîchissement, conserve les dernières
-    données affichées et affiche un bandeau d'avertissement.
-    """
+    """Affiche le tableau de bord temps réel et le met à jour automatiquement."""
     refresh_seconds = resolve_option(
         refresh_opt,
         config.dashboard.refresh_seconds,
@@ -47,8 +42,8 @@ def run_dashboard(
     )
     if refresh_seconds < MIN_DASHBOARD_REFRESH_SECONDS:
         raise ConfigError(
-            f"L'intervalle de rafraîchissement ({refresh_seconds}s) doit être "
-            f"au moins égal à {MIN_DASHBOARD_REFRESH_SECONDS} secondes."
+            f"Le rafraîchissement ({refresh_seconds}s) doit être >= "
+            f"{MIN_DASHBOARD_REFRESH_SECONDS} secondes."
         )
 
     console = Console()
@@ -66,10 +61,10 @@ def run_dashboard(
         with Live(console=console, refresh_per_second=2) as live:
             while max_cycles is None or cycle < max_cycles:
                 cycle += 1
-                # Relit les favoris à chaque cycle pour refléter d'éventuelles modifications
                 favorite_ids = load_favorites(config.favorites_path)
 
                 try:
+                    # Télécharge les données puis réutilise les calculs existants
                     last_snapshot = fetch_live_status(
                         config.network.gbfs_url,
                         config.network.name,
@@ -90,36 +85,27 @@ def run_dashboard(
                     )
                     error_message = None
                 except VeloError as exc:
-                    # Conserve les dernières données valides et avertit l'utilisateur
-                    logger.warning("Échec de mise à jour du tableau de bord : %s", exc)
+                    # En cas de coupure réseau, on garde les dernières données affichées
+                    logger.warning("Échec de mise à jour du dashboard : %s", exc)
                     error_message = str(exc)
 
-                # Si max_cycles est atteint (cas des tests), on affiche puis on quitte sans attendre
                 if max_cycles is not None and cycle >= max_cycles:
                     live.update(
                         render_dashboard(
-                            stats=last_stats,
-                            favorites_rows=last_favs,
-                            alerts=last_alerts,
-                            network_name=config.network.name,
-                            countdown_seconds=refresh_seconds,
-                            error_message=error_message,
-                            staleness_warning=staleness_warning,
+                            last_stats, last_favs, last_alerts,
+                            config.network.name, refresh_seconds,
+                            error_message, staleness_warning,
                         )
                     )
                     break
 
-                # Compte à rebours seconde par seconde jusqu'au prochain téléchargement
+                # Compte à rebours seconde par seconde avant la prochaine requête
                 for remaining in range(refresh_seconds, 0, -1):
                     live.update(
                         render_dashboard(
-                            stats=last_stats,
-                            favorites_rows=last_favs,
-                            alerts=last_alerts,
-                            network_name=config.network.name,
-                            countdown_seconds=remaining,
-                            error_message=error_message,
-                            staleness_warning=staleness_warning,
+                            last_stats, last_favs, last_alerts,
+                            config.network.name, remaining,
+                            error_message, staleness_warning,
                         )
                     )
                     sleep_fn(1.0)
@@ -127,4 +113,3 @@ def run_dashboard(
         console.print("\nTableau de bord fermé.")
 
     return 0
-

@@ -1,8 +1,7 @@
-"""Point d'entrée en ligne de commande (CLI) de l'outil Vélo.
+"""Point d'entrée de la commande ``velo`` dans le terminal.
 
-Utilise ``argparse`` pour analyser les commandes et options, charge et valide
-``config.yaml`` avant d'exécuter les commandes, et intercepte les erreurs attendues
-pour afficher un message propre sans trace d'exception.
+Ce fichier lit les arguments tapés par l'utilisateur avec ``argparse``,
+charge la configuration puis appelle la bonne fonction dans ``commands/``.
 """
 
 import argparse
@@ -35,184 +34,78 @@ logger = logging.getLogger(__name__)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Construit l'arbre complet des commandes et sous-commandes ``velo``."""
+    """Déclare toutes les sous-commandes et options acceptées par ``velo``."""
     parser = argparse.ArgumentParser(
         prog="velo",
-        description="Consulter, collecter et analyser les données temps réel d'un réseau de vélos.",
+        description="Consulter, collecter et analyser les données d'un réseau de vélos.",
     )
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command", required=True)
 
-    # velo init [--force]
-    init_parser = subparsers.add_parser(
-        "init",
-        help="Prépare l'outil : configuration, dossier de données et premiers téléchargements",
-    )
-    init_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Écrase le fichier config.yaml existant avec les valeurs par défaut",
-    )
+    # Commande init
+    init_p = sub.add_parser("init", help="Préparer la configuration et les dossiers")
+    init_p.add_argument("--force", action="store_true", help="Réécrire config.yaml")
 
-    # velo refresh
-    subparsers.add_parser(
-        "refresh",
-        help="Met à jour les données statiques (stations, réseau, types de vélos)",
-    )
+    # Commandes simples sans argument
+    sub.add_parser("refresh", help="Mettre à jour les fichiers statiques du réseau")
+    sub.add_parser("status", help="Afficher le résumé temps réel du réseau")
 
-    # velo status
-    subparsers.add_parser(
-        "status",
-        help="Affiche un résumé de l'état du réseau en temps réel",
-    )
+    # Commande station (search / list / show)
+    st_p = sub.add_parser("station", help="Chercher, lister ou consulter une station")
+    st_sub = st_p.add_subparsers(dest="station_action", required=True)
+    st_sub.add_parser("search", help="Chercher par nom (regex)").add_argument("texte")
+    st_sub.add_parser("list", help="Lister toutes les stations")
+    st_sub.add_parser("show", help="Afficher une station en détail").add_argument("station_id")
 
-    # velo station {search, list, show}
-    station_parser = subparsers.add_parser(
-        "station",
-        help="Consulter, chercher ou lister les stations",
-    )
-    station_sub = station_parser.add_subparsers(dest="station_action", required=True)
+    # Commande favorites (par défaut : affiche ; sinon add / remove)
+    fav_p = sub.add_parser("favorites", help="Gérer les stations favorites (max 10)")
+    fav_sub = fav_p.add_subparsers(dest="favorites_action")
+    fav_sub.add_parser("add", help="Ajouter un favori").add_argument("station_id")
+    fav_sub.add_parser("remove", help="Retirer un favori").add_argument("station_id")
 
-    search_p = station_sub.add_parser("search", help="Chercher une station par son nom (regex)")
-    search_p.add_argument("texte", help="Expression régulière à rechercher dans le nom")
+    # Commande alerts
+    al_p = sub.add_parser("alerts", help="Lister les stations en alerte")
+    al_p.add_argument("--low-bikes", type=int, default=None, help="Seuil vélos")
+    al_p.add_argument("--low-docks", type=int, default=None, help="Seuil places libres")
 
-    station_sub.add_parser("list", help="Lister toutes les stations avec leur identifiant")
+    # Commande dashboard
+    dash_p = sub.add_parser("dashboard", help="Tableau de bord mis à jour en temps réel")
+    dash_p.add_argument("--refresh", type=int, default=None, help="Secondes (min 60)")
 
-    show_p = station_sub.add_parser("show", help="Afficher le détail temps réel d'une station")
-    show_p.add_argument("station_id", help="Identifiant de la station")
+    # Commande collect (--duration, --until et --once sont mutuellement exclusifs)
+    col_p = sub.add_parser("collect", help="Enregistrer l'historique en CSV")
+    col_p.add_argument("--interval", type=int, default=None, help="Secondes (min 60)")
+    stop = col_p.add_mutually_exclusive_group()
+    stop.add_argument("--duration", type=str, default=None, help="Durée (ex: 3h, 30m)")
+    stop.add_argument("--until", type=str, default=None, help='Fin ("AAAA-MM-JJ HH:MM")')
+    stop.add_argument("--once", action="store_true", help="Un seul relevé puis arrêt")
 
-    # velo favorites [add <id> | remove <id>]
-    fav_parser = subparsers.add_parser(
-        "favorites",
-        help="Afficher, ajouter ou retirer des stations favorites",
-    )
-    fav_sub = fav_parser.add_subparsers(dest="favorites_action")
-    fav_add = fav_sub.add_parser("add", help="Ajouter une station aux favoris (max 10)")
-    fav_add.add_argument("station_id", help="Identifiant de la station à ajouter")
-    fav_rm = fav_sub.add_parser("remove", help="Retirer une station des favoris")
-    fav_rm.add_argument("station_id", help="Identifiant de la station à retirer")
+    # Commande history
+    hist_p = sub.add_parser("history", help="Afficher les périodes collectées")
+    hist_p.add_argument("--from", dest="date_from", type=str, default=None)
+    hist_p.add_argument("--to", dest="date_to", type=str, default=None)
 
-    # velo alerts [--low-bikes N] [--low-docks N]
-    alerts_parser = subparsers.add_parser(
-        "alerts",
-        help="Lister les stations hors service, vides/presque vides ou pleines/presque pleines",
-    )
-    alerts_parser.add_argument("--low-bikes", type=int, default=None, help="Seuil de vélos")
-    alerts_parser.add_argument("--low-docks", type=int, default=None, help="Seuil de places libres")
-
-    # velo dashboard [--refresh SECONDES]
-    dash_parser = subparsers.add_parser(
-        "dashboard",
-        help="Tableau de bord du réseau mis à jour en temps réel",
-    )
-    dash_parser.add_argument(
-        "--refresh",
-        type=int,
-        default=None,
-        help="Intervalle de mise à jour en secondes (minimum 60)",
-    )
-
-    # velo collect [--interval S] [--duration D | --until "..." | --once]
-    collect_parser = subparsers.add_parser(
-        "collect",
-        help="Enregistrer l'état de toutes les stations à intervalle régulier",
-    )
-    collect_parser.add_argument(
-        "--interval",
-        type=int,
-        default=None,
-        help="Secondes entre deux relevés (minimum 60)",
-    )
-    stop_group = collect_parser.add_mutually_exclusive_group()
-    stop_group.add_argument(
-        "--duration",
-        type=str,
-        default=None,
-        help="Arrêt automatique après une durée (ex: 3h, 30m)",
-    )
-    stop_group.add_argument(
-        "--until",
-        type=str,
-        default=None,
-        help='Arrêt automatique à une date/heure ("AAAA-MM-JJ HH:MM")',
-    )
-    stop_group.add_argument(
-        "--once",
-        action="store_true",
-        help="Effectue un seul relevé puis s'arrête",
-    )
-
-    # velo history [--from AAAA-MM-JJ] [--to AAAA-MM-JJ]
-    history_parser = subparsers.add_parser(
-        "history",
-        help="Afficher les périodes et relevés enregistrés",
-    )
-    history_parser.add_argument(
-        "--from",
-        dest="date_from",
-        type=str,
-        default=None,
-        help="Date début",
-    )
-    history_parser.add_argument("--to", dest="date_to", type=str, default=None, help="Date fin")
-
-    # velo query --metric ... [filtres] [--by ...] [--top N]
-    query_parser = subparsers.add_parser(
-        "query",
-        help="Analyser l'historique enregistré",
-    )
-    query_parser.add_argument(
-        "--metric",
-        nargs="+",
-        required=True,
-        choices=VALID_METRICS,
-        help="Une ou plusieurs métriques à calculer",
-    )
-    query_parser.add_argument("--date", type=str, default=None, help="Jour exact (AAAA-MM-JJ)")
-    query_parser.add_argument("--from", dest="from_dt", type=str, default=None, help="Borne début")
-    query_parser.add_argument("--to", dest="to_dt", type=str, default=None, help="Borne fin")
-    query_parser.add_argument(
-        "--period",
-        nargs="+",
-        type=int,
-        default=None,
-        help="Numéro(s) de période issus de velo history",
-    )
-    query_parser.add_argument(
-        "--days",
-        type=str,
-        default=None,
-        help="weekdays, weekend ou liste de jours (lundi,mardi)",
-    )
-    query_parser.add_argument(
-        "--hours",
-        type=str,
-        default=None,
-        help="Plage horaire (ex: 7-9)",
-    )
-    query_parser.add_argument(
-        "--station",
-        type=str,
-        default=None,
-        help="Identifiant d'une station",
-    )
-    query_parser.add_argument(
-        "--by",
-        dest="group_by",
-        choices=VALID_GROUP_BY,
-        default=None,
-        help="Regroupement des résultats",
-    )
-    query_parser.add_argument("--top", type=int, default=None, help="N premiers résultats")
+    # Commande query
+    q_p = sub.add_parser("query", help="Analyser l'historique enregistré")
+    q_p.add_argument("--metric", nargs="+", required=True, choices=VALID_METRICS)
+    q_p.add_argument("--date", type=str, default=None)
+    q_p.add_argument("--from", dest="from_dt", type=str, default=None)
+    q_p.add_argument("--to", dest="to_dt", type=str, default=None)
+    q_p.add_argument("--period", nargs="+", type=int, default=None)
+    q_p.add_argument("--days", type=str, default=None)
+    q_p.add_argument("--hours", type=str, default=None)
+    q_p.add_argument("--station", type=str, default=None)
+    q_p.add_argument("--by", dest="group_by", choices=VALID_GROUP_BY, default=None)
+    q_p.add_argument("--top", type=int, default=None)
 
     return parser
 
 
 def _dispatch(args: argparse.Namespace) -> int:
-    """Exécute la commande sélectionnée par ``argparse``."""
+    """Envoie les arguments analysés vers la fonction de commande correspondante."""
     if args.command == "init":
         return run_init(force=args.force)
 
-    # Toutes les autres commandes nécessitent une configuration valide dès le démarrage
+    # Toutes les autres commandes lisent config.yaml et activent les logs dès le début
     config = load_config()
     setup_logging(config.logging.level, config.log_file)
 
@@ -225,8 +118,7 @@ def _dispatch(args: argparse.Namespace) -> int:
             return run_station_search(config, args.texte)
         if args.station_action == "list":
             return run_station_list(config)
-        if args.station_action == "show":
-            return run_station_show(config, args.station_id)
+        return run_station_show(config, args.station_id)
     if args.command == "favorites":
         if args.favorites_action == "add":
             return run_favorites_add(config, args.station_id)
@@ -261,29 +153,27 @@ def _dispatch(args: argparse.Namespace) -> int:
             group_by=args.group_by,
             top_n=args.top,
         )
-
     return 1
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Point d'entrée principal de l'exécutable ``velo``."""
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    """Fonction principale lancée par la commande ``velo``."""
+    args = build_parser().parse_args(argv)
     err_console = Console(stderr=True)
 
     try:
         exit_code = _dispatch(args)
     except VeloError as exc:
-        # Erreur attendue : message clair, aucune trace d'exception, code de sortie non nul
+        # Erreur prévue (réseau, config, ID inconnu) : message clair sans traceback
         logger.error("%s", exc)
         err_console.print(f"[red]Erreur :[/red] {exc}")
         return 1
     except KeyboardInterrupt:
-        err_console.print("\nOpération interrompue par l'utilisateur.")
+        err_console.print("\nOpération interrompue.")
         return 130
     except Exception as exc:
-        # Filet de sécurité : on journalise le détail technique sans afficher de traceback brutal
-        logger.exception("Erreur inattendue dans velo")
+        # Erreur imprévue : on garde le détail dans velo.log sans bloquer l'affichage propre
+        logger.exception("Erreur inattendue")
         err_console.print(f"[red]Erreur inattendue :[/red] {exc}")
         return 1
 
