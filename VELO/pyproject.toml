@@ -1,19 +1,36 @@
 [project]
 name = "velo"
 version = "0.1.0"
-description = "Add your description here"
+description = "Outil CLI Python pour consulter, collecter et analyser les données GBFS d'un réseau de vélos en libre-service (V'Lille)."
 readme = "README.md"
-requires-python = ">=3.14"
-dependencies = []
+requires-python = ">=3.13"
+dependencies = [
+    "pyyaml>=6.0",
+    "requests>=2.31",
+    "rich>=13.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
 
 [project.scripts]
-velo = "velo:main"
+# Point d'entrée de la commande `velo` installée via `uv tool install` ou `pip install -e .`
+velo = "velo.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]
 build-backend = "uv_build"
 
-[tool.uv.workspace]
-members = [
-    "src/commands/commands",
-]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
