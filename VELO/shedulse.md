@@ -236,6 +236,8 @@ l'ordre que vous pouvez suivre pour la création des fichiers et dossiers
 ```
 
 
+# Terminaisons des fichiers VELO
+
 J'ai suivi ton plan étape par étape dans [shedulse.md](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/VELO/../shedulse.md) (plus exactement [shedulse.md](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/shedulse.md)) pour implémenter **tout le socle obligatoire (section 3.1 et section 4 du cahier des charges)** avec des commentaires en ligne et des docstrings en français dans chaque fichier.
 
 Les **fonctionnalités avancées (section 3.2)** n'étaient effectivement pas dans `shedulse.md` : comme convenu, elles ont été laissées de côté pour une phase ultérieure.
