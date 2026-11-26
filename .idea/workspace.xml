@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="481e2868-797e-48ef-a111-7ea9ed70ea4e" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/VELO/shedulse.md" beforeDir="false" afterPath="$PROJECT_DIR$/VELO/shedulse.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/VELO/uv.lock" beforeDir="false" afterPath="$PROJECT_DIR$/VELO/uv.lock" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {}
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/ALYADAVOU/PROJET_PYTHON.git&quot;,
+    &quot;accountId&quot;: &quot;80a2575a-cb9d-46ff-911c-2b38ae68cd1d&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="3Mdf90nPh0kkwrgqIgdxmHYmKQR" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/Kpro&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Koffi/Downloads/projet/PROJET_PYTHON&quot;
+  }
+}</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-a5bc9544c897-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.23654.177" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="481e2868-797e-48ef-a111-7ea9ed70ea4e" name="Changes" comment="" />
+      <created>1795685209888</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1795685209888</updated>
+    </task>
+    <servers />
+  </component>
+</project>
