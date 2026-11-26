@@ -234,3 +234,58 @@ l'ordre que vous pouvez suivre pour la création des fichiers et dossiers
 
 49. docs/decisions.md
 ```
+
+
+J'ai suivi ton plan étape par étape dans [shedulse.md](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/VELO/../shedulse.md) (plus exactement [shedulse.md](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/shedulse.md)) pour implémenter **tout le socle obligatoire (section 3.1 et section 4 du cahier des charges)** avec des commentaires en ligne et des docstrings en français dans chaque fichier.
+
+Les **fonctionnalités avancées (section 3.2)** n'étaient effectivement pas dans `shedulse.md` : comme convenu, elles ont été laissées de côté pour une phase ultérieure.
+
+---
+
+### 1. Fondations et correction de la structure (`Étape 1`)
+- Les sous-dossiers vides qui se trouvaient à la racine de `src/` (`analysis`, `collection`, `commands`, `dashboard`) ont été regroupés sous `src/velo/` comme prévu par `shedulse.md` et le backend `uv_build`.
+- [pyproject.toml](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/pyproject.toml) a été mis à jour (`requires-python = ">=3.13"`, dépendances `pyyaml`, `requests`, `rich`, groupe `dev` avec `pytest` et `ruff`, point d'entrée `velo = "velo.cli:main"`).
+- [__init__.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/__init__.py) et [cli.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/cli.py) gèrent l'analyse `argparse` et capturent les erreurs attendues (`VeloError`) pour afficher un message clair sans traceback avec code de sortie non nul.
+
+### 2. Modules centraux (`Étape 2`)
+- [models.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/models.py) : dataclasses métier (`SystemInfo`, `VehicleType`, `StationInfo`, `StationStatus`, `NetworkSnapshot`, `StationSnapshot`, `CollectionPeriod`) et hiérarchie `VeloError`.
+- [logging_config.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/logging_config.py) : journalisation via `logging` vers `velo.log` (UTF-8) et console (`stderr`).
+- [config.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/config.py) : chargement et validation stricte de `config.yaml` (en nommant le réglage fautif) et règle de priorité `option CLI > config.yaml > défaut du code`.
+- [network.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/network.py) : requêtes HTTP avec `requests` et conversion des erreurs en `NetworkError`.
+- [gbfs.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/gbfs.py) : seul module qui décode le format GBFS (v2.x et v3.0) à partir de `gbfs.json` sans aucune URL secondaire écrite en dur.
+
+### 3. Commandes de base et tableau de bord (`Étapes 3 et 4`)
+- [station_state.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/station_state.py) : états des stations (*hors service*, *vide*, *presque vide*, *pleine*, *presque pleine*), statistiques réseau, alertes sans doublon, détection de fraîcheur des fichiers statiques et recherche regex insensible à la casse et aux accents.
+- Commandes implémentées :
+  - [init.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/commands/init.py) (`velo init [--force]`)
+  - [refresh.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/commands/refresh.py) (`velo refresh`)
+  - [status.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/commands/status.py) (`velo status`)
+  - [station.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/commands/station.py) (`velo station search | list | show`)
+  - [favorites.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/commands/favorites.py) (`velo favorites [add | remove]`, max 10 dans `favorites.json`)
+  - [alerts.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/commands/alerts.py) (`velo alerts [--low-bikes N] [--low-docks N]`)
+  - [dashboard_view.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/dashboard/dashboard_view.py) & [dashboard.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/commands/dashboard.py) (`velo dashboard [--refresh S]`, réutilise les fonctions de calcul et conserve les dernières données en cas d'erreur réseau).
+
+### 4. Collecte, historique et analyse (`Étapes 5 et 6`)
+- [storage.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/collection/storage.py) : CSV quotidiens (`AAAA-MM-JJ.csv`, encodage UTF-8, `newline=""`, dates ISO 8601 heure locale avec décalage horaire), tolérance aux lignes corrompues et détection des périodes (`<= 3 × interval_seconds`).
+- [collector.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/collection/collector.py) & [collect.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/commands/collect.py) : collecte `--interval`, `--duration`, `--until`, `--once`, déduplication sur `last_updated`, reprise sur erreur réseau et bilan à l'arrêt (`Ctrl+C`).
+- [history.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/commands/history.py) : affichage des périodes enregistrées (`--from`, `--to`).
+- [metrics.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/analysis/metrics.py), [analysis.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/analysis/analysis.py) & [query.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/src/velo/commands/query.py) : métriques (`avg_bikes`, `avg_docks`, `empty_rate`, `full_rate`), filtres (`--date`, `--from`, `--to`, `--period`, `--days`, `--hours`, `--station`), `--by` (`station`, `hour`, `weekday`, `day`), `--top`, avertissement si interruptions et erreur avec périodes disponibles si sélection vide.
+
+### 5. Tests (`Étape 7`) et documentation dans `/docs` (`Étape 8`)
+- Les 16 fichiers de tests sous `tests/` ([test_config.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/tests/test_config.py) à [test_query.py](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/tests/test_query.py)) avec appels réseau simulés.
+- Toute la documentation a été placée dans `VELO/docs/` :
+  - [decisions.md](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/docs/decisions.md)
+  - [architecture.md](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/docs/architecture.md)
+  - [commands.md](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/docs/commands.md)
+  - [installation.md](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/docs/installation.md)
+  - Et [README.md](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/README.md) à la racine (livrable demandé par le cahier des charges, renvoyant vers `docs/`).
+
+---
+
+### Vérifications effectuées après la dernière modification
+- `.\.venv\Scripts\python.exe -m pytest -v` : **44 passed** en 1.90s.
+- `ruff check src tests` : **All checks passed!**
+- Test CLI `python -c "from velo.cli import main; main(['--help'])"` : exécuté avec code de sortie `0`.
+
+> [!NOTE]
+> `uv` n'est pas installé dans l'environnement PowerShell actuel, j'ai donc utilisé un `.venv` local pour exécuter `pytest`. Pense à lancer `uv lock` (ou `uv sync` puis `uv tool install .`) depuis `VELO/` sur une machine où `uv` est installé pour mettre à jour [uv.lock](file:///c:/Users/Koffi/Downloads/projet/PROJET_PYTHON/VELO/uv.lock) avec les nouvelles dépendances.
